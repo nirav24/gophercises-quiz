@@ -1,52 +1,34 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"strings"
+
+	"github.com/nirav24/gophercises-quiz/quiz"
 )
 
 func main() {
 
-	filePath := flag.String("path", "problems.csv", "Path to file containing problems")
+	filePath := flag.String("csv", "problems.csv", "A csv file containing problems in 'question,answer' format")
 	flag.Parse()
 
 	file, err := os.Open(*filePath)
-
 	if err != nil {
 		log.Fatalf("Failed to Read csv file. Msg: %s", err)
 	}
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-
-	questionset, err := reader.ReadAll()
+	questions, err := reader.ReadAll()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	totalQuestions := len(questionset)
-	rightQuestions := 0
+	problems := quiz.ParseProblems(questions)
+	result := quiz.PlayQuiz(problems)
 
-	inputReader := bufio.NewReader(os.Stdin)
-
-	for _, question := range questionset {
-		fmt.Printf("%s = ", question[0])
-		answer, err := inputReader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-		// convert CRLF to LF
-		answer = strings.Replace(answer, "\n", "", -1)
-		if strings.Compare(answer, question[1]) == 0 {
-			rightQuestions++
-		}
-	}
-
-	fmt.Printf("\nTotal Question %d, Right Questions: %d", totalQuestions, rightQuestions)
-
+	fmt.Printf("You scored %d out of %d.\n", result.Right, result.Total)
 }
