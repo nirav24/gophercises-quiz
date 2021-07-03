@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type Problem struct {
@@ -34,21 +35,33 @@ type Result struct {
 
 // PlayQuiz starts the quiz and keep tracks of right questions.
 // When quiz ends, it returns Result struct
-func PlayQuiz(problems []Problem) Result {
+func PlayQuiz(problems []Problem, ch <-chan time.Time) Result {
 	rightQuestions := 0
 	inputReader := bufio.NewReader(os.Stdin)
 
 	for i, problem := range problems {
 		fmt.Printf("Question %d: %s = ", i+1, problem.Question)
+		answerChan := make(chan string)
 
-		answer, err := inputReader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-		// convert CRLF to LF
-		answer = strings.Replace(answer, "\n", "", -1)
-		if strings.Compare(answer, problem.Answer) == 0 {
-			rightQuestions++
+		go func() {
+			answer, err := inputReader.ReadString('\n')
+			if err != nil {
+				log.Fatal(err)
+			}
+			// convert CRLF to LF
+			answer = strings.Replace(answer, "\n", "", -1)
+			answerChan <- answer
+		}()
+		select {
+		case <-ch:
+			return Result{
+				Total: len(problems),
+				Right: rightQuestions,
+			}
+		case answer := <-answerChan:
+			if strings.Compare(answer, problem.Answer) == 0 {
+				rightQuestions++
+			}
 		}
 	}
 	return Result{

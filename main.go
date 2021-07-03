@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/nirav24/gophercises-quiz/quiz"
 )
@@ -13,6 +14,8 @@ import (
 func main() {
 
 	filePath := flag.String("csv", "problems.csv", "A csv file containing problems in 'question,answer' format")
+	timeLimit := flag.Int("time", 30, "A time limit for quiz in seconds")
+
 	flag.Parse()
 
 	file, err := os.Open(*filePath)
@@ -28,7 +31,9 @@ func main() {
 	}
 
 	problems := quiz.ParseProblems(questions)
-	result := quiz.PlayQuiz(problems)
+
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
+	result := quiz.PlayQuiz(problems, timer.C)
 
 	fmt.Printf("You scored %d out of %d.\n", result.Right, result.Total)
 }
